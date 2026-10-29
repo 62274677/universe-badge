@@ -8,7 +8,8 @@ This is the live code: CI publishes it on every push to main and the loader
 Any button returns to the menu. The menu opens this after 60 s without input,
 or straight away with UP + DOWN + BACK held together.
 
-Power: the backlight is capped and the frame rate limited. The soft sky is
+Power: the backlight is capped and the frame rate limited (30 fps for the
+first minute so it opens smoothly, then 12). The soft sky is
 rendered at half resolution a layer per frame and cached, so each frame only
 draws the stars and black holes. After 5 minutes everything dims, and after 30
 minutes the badge goes into deep sleep (any front button wakes it).
@@ -34,6 +35,8 @@ screen.antialias = image.X2
 W, H = screen.width, screen.height
 LW, LH = W // 2, H // 2
 
+SMOOTH_FPS = 30  # for the first SMOOTH_FOR_MS of each run, as far as the badge keeps up
+SMOOTH_FOR_MS = 60 * 1000
 BRIGHT_FPS = 12
 DIM_FPS = 6
 BRIGHT_REGEN_MS = 1200
@@ -524,14 +527,22 @@ def lens(buf, stride: int, cx: int, cy: int, radius: int, e2: int, s2: int, tmp)
         j += 1
 
 
-try:
-    FRAMEBUFFER = screen.raw
-    STRIDE = screen.stride
-    LENSING = True
-except AttributeError:
-    FRAMEBUFFER = None
-    STRIDE = 0
-    LENSING = False
+def framebuffer():
+    """(pixels, stride) for lens(), or None if the screen isn't the 32-bit layout it
+    assumes. Read fresh every frame: the firmware can swap or reallocate the buffer
+    (VSYNC, mode changes), and a pointer cached at import then writes to a frame
+    that is never shown."""
+    try:
+        raw, stride = screen.raw, screen.stride
+    except AttributeError:
+        return None
+    try:
+        size = len(raw)
+    except TypeError:  # a bare address: nothing to check
+        size = None
+    if stride < W * 4 or (size is not None and size < stride * H):
+        return None
+    return raw, stride
 
 # blackbody-ish ramp from the hot inner disk out to the cool rim
 DISK_TINTS = (
@@ -697,13 +708,15 @@ class BlackHole:
             screen.shape(self.glow_shape)
             screen.alpha = 255
             self.draw_disk(False, seconds, fade, place)
-        if LENSING:
+        fb = framebuffer()
+        if fb:
             e2 = int(self.einstein * self.einstein * fade)
             s2 = max(1, int(self.shadow * self.shadow * fade * fade))
-            lens(FRAMEBUFFER, STRIDE, cx, cy, self.radius, e2, s2, self.tmp)
-        else:
-            screen.pen = color.rgb(0, 0, 0, int(255 * fade))
-            screen.shape(shape.circle(cx, cy, self.shadow * fade))
+            lens(fb[0], fb[1], cx, cy, self.radius, e2, s2, self.tmp)
+        # The shadow as a shape as well: lens() blackens it too, but if its direct
+        # pixel writes miss the shown frame, the hole is left a bare yellow disk.
+        screen.pen = color.rgb(0, 0, 0, int(255 * fade))
+        screen.shape(shape.circle(cx, cy, self.shadow * fade))
         if self.has_disk:
             self.draw_disk(True, seconds, fade, place)
         screen.pen = RING_WARM if self.has_disk else RING_PALE
@@ -816,7 +829,11 @@ def update():
 
     # wait out the rest of the frame, but keep watching the buttons so a quick
     # tap is never missed at the low dimmed frame rate
-    deadline = time.ticks_add(frame_start, 1000 // (BRIGHT_FPS if dim < 1.0 else DIM_FPS))
+    if now < SMOOTH_FOR_MS:
+        fps = SMOOTH_FPS
+    else:
+        fps = BRIGHT_FPS if dim < 1.0 else DIM_FPS
+    deadline = time.ticks_add(frame_start, 1000 // fps)
     while True:
         spare = time.ticks_diff(deadline, time.ticks_ms())
         if spare <= 0:

@@ -1,0 +1,3 @@
+# LF everywhere: ota.py copies are compared byte for byte, and files go to the badge as-is.
+* text=auto eol=lf
+*.png binary

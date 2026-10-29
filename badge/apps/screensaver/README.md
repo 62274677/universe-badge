@@ -29,6 +29,7 @@ The case lights breathe in time with the nebula, each a little behind the last s
 ## Power
 
 - Backlight is capped at 40% (or your own setting if lower), breathing slightly with the nebula.
+- It runs at up to 30 fps for the first minute, then 12 fps.
 - After 5 minutes the backlight drops to 12%, the case lights almost off and the frame rate halves.
 - After 30 minutes the badge goes into deep sleep. Press any front button to wake it.
 - On battery below 15% it starts dimmed; below 5% it goes straight to sleep.

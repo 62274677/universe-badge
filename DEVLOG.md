@@ -290,7 +290,8 @@ printed its contents.
 ## 10. Tuning knobs (for later)
 
 Top of `live/badge_app.py`:
-- `STAR_COUNT`, `MAX_HOLES`, `BRIGHT_FPS` / `DIM_FPS` — the main perf levers.
+- `STAR_COUNT`, `MAX_HOLES`, `SMOOTH_FPS` / `SMOOTH_FOR_MS`, `BRIGHT_FPS` / `DIM_FPS` — the
+  main perf levers.
 - `BACKLIGHT_BRIGHT` / `BACKLIGHT_DIM`, `CASE_BRIGHT` / `CASE_DIM` — power vs.
   brightness.
 - `DIM_AFTER_MS`, `SLEEP_AFTER_MS`, `LOW_BATTERY`, `CRITICAL_BATTERY` — timing.
