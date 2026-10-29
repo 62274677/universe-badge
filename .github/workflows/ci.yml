@@ -23,10 +23,11 @@ jobs:
       - run: pip install ruff pytest mpy-cross
       - run: ruff check .
       # CPython accepts syntax MicroPython doesn't; compile with the real thing.
+      # armv7emsp is the RP2350's native target, so Viper code is checked too.
       - name: Compile badge code with MicroPython's compiler
         run: |
           for f in $(find badge -name '*.py'); do
-            python -m mpy_cross -o "$RUNNER_TEMP/check.mpy" "$f"
+            python -m mpy_cross -march=armv7emsp -o "$RUNNER_TEMP/check.mpy" "$f"
           done
       - run: pytest
       - name: Build the OTA site
@@ -54,12 +55,15 @@ jobs:
         with:
           path: ~/.cache/universe-badge-sim
           key: badge-sim-${{ hashFiles('tools/preview/preview.mjs') }}
-      - run: node tools/preview/preview.mjs --ms 3000 --out preview.png
+      - name: Run each app in the simulator
+        run: |
+          node tools/preview/preview.mjs --ms 3000 --out preview.png
+          node tools/preview/preview.mjs --app screensaver --ms 6000 --out preview-screensaver.png
       - if: always()
         uses: actions/upload-artifact@v7
         with:
           name: preview
-          path: preview.png
+          path: preview*.png
           if-no-files-found: ignore
 
   deploy:
