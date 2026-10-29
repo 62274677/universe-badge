@@ -1,7 +1,9 @@
-// Runs badge/apps/universe_badge in the badger.github.io simulator and saves a
-// screenshot, so you can see a change before pushing it to the badge.
+// Runs an app from badge/apps (universe_badge unless --app says otherwise) in the
+// badger.github.io simulator and saves a screenshot, so you can see a change before
+// pushing it to the badge.
 //
 //   node tools/preview/preview.mjs                  screenshot to preview.png
+//   node tools/preview/preview.mjs --app screensaver --ms 8000 --out saver.png
 //   node tools/preview/preview.mjs --press down,select --out menu.png
 //   node tools/preview/preview.mjs --live           browser window, reloads on save
 //   node tools/preview/preview.mjs --ota            run the real update path against
@@ -21,15 +23,14 @@ import { chromium } from "playwright-core";
 
 // badger/home commit whose .github/extensions/badge-simulator/web/ we serve.
 const HOME_REV = "c095061d3483a2504a67a1f37ed4d7ee71edad5a";
-const APP = "universe_badge";
 const BUTTONS = { down: 1, up: 2, select: 4, right: 8, left: 16, home: 32, back: 8192, menu: 16384 };
 
 const repo = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
-const appDir = join(repo, "badge", "apps", APP);
 const cache = join(homedir(), ".cache", "universe-badge-sim");
 
 const { values: opts } = parseArgs({
     options: {
+        app: { type: "string", default: "universe_badge" },
         out: { type: "string", default: join(repo, "preview.png") },
         ms: { type: "string", default: "1500" },
         press: { type: "string", default: "" },
@@ -38,6 +39,9 @@ const { values: opts } = parseArgs({
         ota: { type: "boolean", default: false },
     },
 });
+const APP = opts.app;
+const appDir = join(repo, "badge", "apps", APP);
+if (!existsSync(join(appDir, "__init__.py"))) throw new Error(`No app at ${appDir}`);
 
 async function cached(url, file) {
     if (existsSync(file)) return readFileSync(file);

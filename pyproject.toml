@@ -5,12 +5,14 @@ target-version = "py311"
 builtins = ["badge", "screen", "image", "font", "color", "shape", "brush", "vec2", "rect",
             "mat3", "run", "launch", "clamp", "HIRES", "LORES", "VSYNC",
             "BUTTON_UP", "BUTTON_DOWN", "BUTTON_LEFT", "BUTTON_RIGHT", "BUTTON_SELECT",
-            "BUTTON_BACK", "BUTTON_MENU", "BUTTON_HOME"]
+            "BUTTON_BACK", "BUTTON_MENU", "BUTTON_HOME",
+            # MicroPython's Viper emitter
+            "ptr8", "ptr16", "ptr32"]
 exclude = ["tools/preview/node_modules"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "B"]
 
 [tool.pytest.ini_options]
-pythonpath = ["badge/apps/universe_badge", "tools"]
+pythonpath = ["badge/apps/universe_badge", "badge", "tools"]
 testpaths = ["tests"]

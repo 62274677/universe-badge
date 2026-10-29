@@ -1,5 +1,5 @@
 dist/
-preview.png
+preview*.png
 node_modules/
 __pycache__/
 .pytest_cache/
