@@ -1,0 +1,9 @@
+{
+  "name": "universe-badge-preview",
+  "private": true,
+  "type": "module",
+  "description": "Headless badger.github.io simulator for previewing the badge app",
+  "dependencies": {
+    "playwright-core": "^1.58.0"
+  }
+}

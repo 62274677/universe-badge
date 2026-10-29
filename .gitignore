@@ -1,5 +1,6 @@
-badge/wifi_config.py
 dist/
+preview.png
+node_modules/
 __pycache__/
 .pytest_cache/
 .ruff_cache/

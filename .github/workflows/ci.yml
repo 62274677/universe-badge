@@ -16,8 +16,8 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-python@v6
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.13"
       - run: pip install ruff pytest mpy-cross
@@ -36,9 +36,35 @@ jobs:
         with:
           path: dist
 
+  # Runs the app in the badger.github.io simulator: fails on a traceback, and
+  # uploads a screenshot of what badges will show.
+  simulate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: tools/preview/package-lock.json
+      - run: npm ci --prefix tools/preview
+      - uses: actions/cache@v6
+        with:
+          path: ~/.cache/universe-badge-sim
+          key: badge-sim-${{ hashFiles('tools/preview/preview.mjs') }}
+      - run: node tools/preview/preview.mjs --ms 3000 --out preview.png
+      - if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: preview
+          path: preview.png
+          if-no-files-found: ignore
+
   deploy:
     if: github.ref == 'refs/heads/main'
-    needs: check
+    needs: [check, simulate]
     runs-on: ubuntu-latest
     permissions:
       pages: write
