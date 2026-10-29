@@ -84,7 +84,8 @@ def read_state(root="/"):
 def update(base_url, root="/"):
     """Install the published build if it differs from ours.
 
-    Returns the new version, or None if already current. Every changed file
+    Returns the new version, or None if no file under app/ changed (a
+    README-only push bumps the version but needs no reboot). Every changed file
     is downloaded and checksummed before any is replaced, so a failed
     update leaves the installed build untouched.
     """
@@ -122,10 +123,10 @@ def update(base_url, root="/"):
     for rel in staged:
         _remove(root + rel)  # FAT can't rename over an existing file
         os.rename(root + rel + ".new", root + rel)
-    for rel in old:
-        if rel not in new:
-            _remove(root + rel)
+    removed = [rel for rel in old if rel not in new]
+    for rel in removed:
+        _remove(root + rel)
     with open(root + STATE_FILE, "w") as f:
         json.dump({"version": manifest["version"],
                    "files": {rel: meta["sha256"] for rel, meta in new.items()}}, f)
-    return manifest["version"]
+    return manifest["version"] if staged or removed else None

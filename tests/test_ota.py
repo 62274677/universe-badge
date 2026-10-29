@@ -64,6 +64,16 @@ def test_same_version_fetches_only_the_manifest(site, badge):
     assert site.fetched == ["manifest.json"]
 
 
+def test_new_version_with_identical_files_records_it_without_reboot(site, badge):
+    site({"app/main.py": "print(1)"}, "1-aaa")
+    install(badge)
+    site({"app/main.py": "print(1)"}, "2-bbb")
+    site.fetched.clear()
+    assert install(badge) is None
+    assert site.fetched == ["manifest.json"]
+    assert ota.read_state(str(badge) + "/")["version"] == "2-bbb"
+
+
 def test_downloads_only_changed_files_and_deletes_removed_ones(site, badge):
     site({"app/main.py": "print(1)", "app/keep.py": "k", "app/old.py": "o"}, "1-aaa")
     install(badge)
