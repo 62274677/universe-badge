@@ -264,6 +264,9 @@ printed its contents.
 
 ## 9. Open items / caveats
 
+> As of 2026-10-29. The current list is in [STATUS.md](STATUS.md): the badge has since booted
+> with the `main.py` and menu hooks in place, and section 11 below covers what came after.
+
 - **Not yet run on the real badge.** Everything is verified in the simulator and
   by static checks only. The sim doesn't model real speed, memory, battery, or
   WiFi — so on-device frame rate, the 12% dim look, deep sleep/wake, and the
@@ -300,3 +303,44 @@ Top of `live/badge_app.py`:
 To iterate remotely now: edit `badge/apps/screensaver/live/badge_app.py`,
 `node tools/preview/preview.mjs --app screensaver` to preview, push to `main`.
 Badges pick it up next time the screensaver opens.
+
+---
+
+## 11. Follow-up review and fixes (2026-10-29, build 7)
+
+Max reported three things from the real badge after build 5: Settings failed with
+`'module' object has no attribute 'locked'`, the screensaver should be smooth when it opens,
+and some black holes looked like plain yellow ellipses.
+
+**Settings.** `badger/home` `badge/apps/settings/__init__.py` calls `secrets.locked(key)` and
+`secrets.save({...})`. So on this firmware `secrets.py` is a module with functions, not just
+values. The simulator's own `secrets.py` has the same shape (`locked()`, `save()`, then the
+values). The edit that added `WIFI_NETWORKS` (section 7) must have left the badge loading a
+`secrets.py` without those functions. No repo code writes `secrets.py`: `install.py` only
+reads it to warn about missing WiFi. So the fix is on the badge (see STATUS.md). Whatever
+writes `secrets.py` from now on should add lines and keep the functions.
+
+**Smooth start.** The frame cap is now `SMOOTH_FPS` (30) for the first `SMOOTH_FOR_MS`
+(60 s) of each run, then the old `BRIGHT_FPS` / `DIM_FPS`. Motion already used real elapsed
+time (`dt`, `seconds`), so only the frame count changes, not the speed. In the simulator the
+same 6-second capture went from 69 to 157 frames. The badge's real rate depends on the cost of
+each frame, which the simulator can't measure: it runs Viper code as plain Python.
+
+**Yellow ellipses.** A disk hole is drawn as glow, back half of the disk, `lens()`, front half,
+photon ring. Only `lens()` made the centre black, by writing pixels straight into
+`screen.raw` through `ptr32`, using a pointer read once at import. If the firmware swaps or
+reallocates that buffer (VSYNC double-buffering, `badge.mode()` changes), those writes land in
+a buffer that isn't on screen. What's left is the flattened warm disk, which matches the
+report, including only some holes or frames being affected. This is a hypothesis, not
+confirmed on the badge. Build 7 changes two things:
+- `framebuffer()` reads `screen.raw` and `screen.stride` fresh each frame, and skips lensing
+  unless the stride and size fit the 32-bit layout `lens()` assumes. A stale pointer into a
+  freed buffer would also be a memory-corruption risk.
+- The shadow is also drawn as an ordinary filled circle after `lens()`, so the centre is black
+  whether or not the direct writes reach the screen.
+
+If lensing still doesn't show on the badge, start with the REPL check in STATUS.md.
+
+**Line endings.** `.gitattributes` now forces LF. `test_every_ota_app_ships_the_same_updater`
+compares the `ota.py` copies byte for byte, and Windows checkouts with `core.autocrlf` turned
+one of them CRLF, which made the test fail locally while CI passed.

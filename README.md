@@ -3,6 +3,8 @@
 Apps for the GitHub Universe 2026 badge, continuously deployed: push to `main` and every
 badge running them installs the new code over WiFi, no cable and no restart.
 
+Current state and open items: [STATUS.md](STATUS.md). History and reasoning: [DEVLOG.md](DEVLOG.md).
+
 | App | What it is | Published at |
 |---|---|---|
 | `universe_badge` | Name badge with a contribution-graph ripple | `/manifest.json` |
